@@ -1,0 +1,65 @@
+name: Bitcoin Order App CI/CD
+
+on:
+  push:
+    branches:
+      - githubcicd
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up Chrome for headless tests
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Generate changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.WORKSHOP6_GITHUB_TOKEN }}
+          output-file: "false"
+
+      - name: Create release
+        if: steps.changelog.outputs.skipped == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKSHOP6_GITHUB_TOKEN }}
+
+      - name: Deploy to GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKSHOP6_GITHUB_TOKEN }}
+        run: npm run deploy
