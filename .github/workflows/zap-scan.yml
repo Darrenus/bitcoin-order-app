@@ -1,0 +1,28 @@
+name: "owasp-scan"
+
+on:
+  push:
+    branches: [githubcicd]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Run ZAP baseline scan
+        run: bash scripts/zap-script.sh
+
+      - name: Archive DAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap report
+          path: ./zap_baseline_report.html
+          if-no-files-found: error
