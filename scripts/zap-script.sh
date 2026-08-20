@@ -8,6 +8,7 @@ report_file="zap_baseline_report.html"
 
 docker pull zaproxy/zap-stable
 docker run --rm \
+  --user "$(id -u):$(id -g)" \
   --volume "$project_root:/zap/wrk/:rw" \
   zaproxy/zap-stable \
   zap-baseline.py -t "$target_url" -l PASS -r "$report_file"
