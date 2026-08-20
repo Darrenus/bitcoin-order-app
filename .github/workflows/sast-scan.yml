@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: sast-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sast:
     runs-on: ubuntu-latest
@@ -22,8 +26,11 @@ jobs:
           node-version: 16.x
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Restore Dependency-Check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check/data
+          key: dependency-check-${{ runner.os }}-12.1.1-v1
 
       - name: Download OWASP Dependency-Check
         run: |
@@ -45,6 +52,8 @@ jobs:
             --format HTML \
             --out . \
             --scan . \
+            --exclude "**/node_modules/**" \
+            --nvdValidForHours 24 \
             --disableOssIndex
 
       - name: Archive SAST report
